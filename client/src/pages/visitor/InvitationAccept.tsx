@@ -11,7 +11,7 @@ import { Loader2, Camera, Calendar, CheckCircle } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import { useCallback, useEffect } from "react";
 import { format } from "date-fns";
-import QRCode from "qrcode.react";
+import { QRCodeSVG } from "qrcode.react";
 
 const acceptSchema = z.object({
   visitorName: z.string().min(2),
@@ -75,7 +75,7 @@ export default function InvitationAccept() {
           </CardHeader>
           <CardContent>
             <div className="bg-white p-6 rounded-xl border inline-block mb-6 shadow-sm">
-              <QRCode value={updatedVisit.id.toString()} size={180} />
+              <QRCodeSVG value={updatedVisit.id.toString()} size={180} />
             </div>
             <div className="bg-secondary/50 p-4 rounded-lg text-left text-sm space-y-2 mb-6">
               <div className="flex justify-between">
