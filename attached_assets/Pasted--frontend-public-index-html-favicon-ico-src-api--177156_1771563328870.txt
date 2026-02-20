@@ -1,0 +1,517 @@
+```
+frontend/
+├── public/
+│   ├── index.html
+│   └── favicon.ico
+│
+├── src/
+│   ├── api/
+│   │   ├── axiosConfig.js              # Axios instance
+│   │   ├── authApi.js                  # Login API
+│   │   ├── invitationApi.js            # Send invitation
+│   │   ├── visitorRequestApi.js        # Create visitor, approve/reject
+│   │   └── watchmanApi.js              # Check-in/out, dashboard stats
+│   │
+│   ├── components/
+│   │   ├── layout/
+│   │   │   ├── Navbar.jsx
+│   │   │   ├── Sidebar.jsx
+│   │   │   └── Footer.jsx
+│   │   │
+│   │   ├── auth/
+│   │   │   └── LoginForm.jsx           # Employee login
+│   │   │
+│   │   ├── employee/
+│   │   │   ├── InvitationForm.jsx      # Send invitation to visitor
+│   │   │   ├── RequestList.jsx         # List pending requests
+│   │   │   └── RequestCard.jsx         # Approve/Reject buttons
+│   │   │
+│   │   ├── visitor/
+│   │   │   ├── VisitorForm.jsx         # Visitor registration form (with photo)
+│   │   │   ├── TokenValidator.jsx      # Validate invitation token
+│   │   │   └── ThankYouPage.jsx        # After submission
+│   │   │
+│   │   ├── watchman/
+│   │   │   ├── QRScanner.jsx           # Scan QR code
+│   │   │   ├── VisitorDetails.jsx      # Show visitor info after scan
+│   │   │   ├── DashboardStats.jsx      # Today visits, total in office, left
+│   │   │   ├── CheckInButton.jsx       # Check-in action
+│   │   │   └── CheckOutButton.jsx      # Check-out action
+│   │   │
+│   │   └── common/
+│   │       ├── Loader.jsx
+│   │       ├── ErrorAlert.jsx
+│   │       ├── SuccessAlert.jsx
+│   │       └── StatusBadge.jsx         # pending, approved, rejected, etc.
+│   │
+│   ├── pages/
+│   │   ├── auth/
+│   │   │   └── LoginPage.jsx           # Employee login page
+│   │   │
+│   │   ├── employee/
+│   │   │   ├── EmployeeDashboard.jsx   # Employee home
+│   │   │   ├── SendInvitation.jsx      # Send invitation page
+│   │   │   └── ApprovalPage.jsx        # Approve/reject requests
+│   │   │
+│   │   ├── visitor/
+│   │   │   ├── VisitorRegistration.jsx # Public registration (QR scan at gate)
+│   │   │   └── InvitationAccept.jsx    # Accept invitation & register
+│   │   │
+│   │   ├── watchman/
+│   │   │   ├── WatchmanDashboard.jsx   # Stats dashboard
+│   │   │   ├── ScanQRPage.jsx          # Scan visitor QR
+│   │   │   └── VisitorDetailsPage.jsx  # Show scanned visitor details
+│   │   │
+│   │   └── HomePage.jsx                # Landing page
+│   │
+│   ├── context/
+│   │   ├── AuthContext.jsx             # Employee auth state
+│   │   └── NotificationContext.jsx     # Toast notifications
+│   │
+│   ├── hooks/
+│   │   ├── useAuth.js                  # Login/logout
+│   │   ├── useInvitation.js            # Send invitation
+│   │   ├── useVisitorRequest.js        # Create, approve, reject
+│   │   ├── useQRScanner.js             # QR scanning logic
+│   │   └── useWatchmanStats.js         # Dashboard stats
+│   │
+│   ├── utils/
+│   │   ├── constants.js                # API URLs, status types
+│   │   ├── validators.js               # Form validation
+│   │   └── helpers.js                  # Date formatting, etc.
+│   │
+│   ├── routes/
+│   │   ├── AppRoutes.jsx               # All routes
+│   │   ├── PrivateRoute.jsx            # Protected routes
+│   │   └── PublicRoute.jsx             # Public routes
+│   │
+│   ├── styles/
+│   │   └── globals.css
+│   │
+│   ├── App.jsx
+│   ├── main.jsx
+│   └── .env                            # VITE_API_URL=http://localhost:3000
+│
+├── package.json
+└── vite.config.js
+```
+
+---
+
+## **Routes Structure**
+
+```javascript
+// Public Routes
+/                                    → HomePage
+/login                               → LoginPage (Employee)
+/visitor/register                    → VisitorRegistration (QR scan at gate)
+/visitor/invitation/:token           → InvitationAccept (Email link)
+
+// Employee Routes (Protected)
+/employee/dashboard                  → EmployeeDashboard
+/employee/send-invitation            → SendInvitation
+/employee/requests                   → ApprovalPage (Approve/Reject)
+
+// Watchman Routes (Protected)
+/watchman/dashboard                  → WatchmanDashboard (Stats)
+/watchman/scan                       → ScanQRPage
+/watchman/visitor/:id                → VisitorDetailsPage (After scan)
+```
+
+---
+
+## **User Flows**
+
+### **Flow 1: Invitation-based Registration**
+
+1. Employee logs in → `/login`
+2. Employee sends invitation → `/employee/send-invitation`
+3. Visitor receives email with link
+4. Visitor clicks link → `/visitor/invitation/:token`
+5. Visitor fills form with photo → Submit
+6. Email sent to employee & visitor (pending)
+7. Employee approves → `/employee/requests`
+8. Visitor receives approval email with gate pass
+
+### **Flow 2: Direct Registration at Gate**
+
+1. Visitor scans QR at gate → `/visitor/register`
+2. Visitor fills form with photo → Submit
+3. Email sent to employee & visitor (pending)
+4. Employee approves → `/employee/requests`
+5. Visitor receives approval email with gate pass
+
+### **Flow 3: Watchman Check-in/out**
+
+1. Watchman scans visitor's QR → `/watchman/scan`
+2. Shows visitor details & validity
+3. If valid → Check-in button (saves time)
+4. Visitor leaves → Scan again → Check-out button
+5. Dashboard shows: today visits, in office, left
+
+---
+
+## **Best NPM Packages**
+
+### **Core**
+
+```json
+{
+  "react": "^18.2.0",
+  "react-dom": "^18.2.0",
+  "react-router-dom": "^6.20.0",
+  "vite": "^5.0.0"
+}
+```
+
+### **API & State Management**
+
+```json
+{
+  "axios": "^1.6.0", // API calls
+  "@tanstack/react-query": "^5.0.0", // Data fetching & caching
+  "zustand": "^4.4.0" // Lightweight state management (alternative to Context)
+}
+```
+
+### **Forms & Validation**
+
+```json
+{
+  "react-hook-form": "^7.48.0", // Form handling
+  "zod": "^3.22.0", // Schema validation
+  "@hookform/resolvers": "^3.3.0" // Connect zod with react-hook-form
+}
+```
+
+### **UI Components**
+
+```json
+{
+  "@mui/material": "^5.14.0", // Material-UI components
+  "@mui/icons-material": "^5.14.0", // Icons
+  "@emotion/react": "^11.11.0", // Required for MUI
+  "@emotion/styled": "^11.11.0"
+}
+```
+
+**OR**
+
+```json
+{
+  "tailwindcss": "^3.3.0", // Utility-first CSS
+  "shadcn-ui": "latest", // Modern components
+  "lucide-react": "^0.292.0" // Icons
+}
+```
+
+### **QR Code**
+
+```json
+{
+  "html5-qrcode": "^2.3.8", // QR scanner (camera)
+  "qrcode.react": "^3.1.0" // Generate QR codes
+}
+```
+
+### **File Upload**
+
+```json
+{
+  "react-dropzone": "^14.2.0" // Drag & drop photo upload
+}
+```
+
+### **Notifications**
+
+```json
+{
+  "react-hot-toast": "^2.4.0", // Toast notifications
+  "sonner": "^1.2.0" // Alternative: Modern toast
+}
+```
+
+### **Date & Time**
+
+```json
+{
+  "date-fns": "^2.30.0", // Date formatting
+  "react-datepicker": "^4.21.0" // Date picker
+}
+```
+
+### **Authentication**
+
+```json
+{
+  "jwt-decode": "^4.0.0" // Decode JWT tokens
+}
+```
+
+### **Charts (Optional - for watchman dashboard)**
+
+```json
+{
+  "recharts": "^2.10.0" // Simple charts
+}
+```
+
+---
+
+## **Recommended Tech Stack**
+
+```json
+{
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.0",
+    "axios": "^1.6.0",
+    "@tanstack/react-query": "^5.0.0",
+    "react-hook-form": "^7.48.0",
+    "zod": "^3.22.0",
+    "@hookform/resolvers": "^3.3.0",
+    "@mui/material": "^5.14.0",
+    "@mui/icons-material": "^5.14.0",
+    "@emotion/react": "^11.11.0",
+    "@emotion/styled": "^11.11.0",
+    "html5-qrcode": "^2.3.8",
+    "qrcode.react": "^3.1.0",
+    "react-dropzone": "^14.2.0",
+    "react-hot-toast": "^2.4.0",
+    "date-fns": "^2.30.0",
+    "jwt-decode": "^4.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.0",
+    "vite": "^5.0.0",
+    "eslint": "^8.55.0"
+  }
+}
+```
+
+---
+
+Want me to create specific components like QRScanner, VisitorForm, or WatchmanDashboard?
+
+Design a Visitor Management System landing page.
+
+Sections:
+1. Navbar:
+   - Logo: VMS
+   - Menu: Home, Login, Visitor Register, Contact
+   - Primary button: Login
+
+2. Hero Section:
+   - Heading: "Smart Visitor Management System"
+   - Subheading: "Secure and digital visitor tracking for modern offices"
+   - Two buttons:
+        - Send Invitation (Primary Blue)
+        - Register at Gate (Outline)
+   - Right side: Dashboard preview mockup
+
+3. Features Section (3 cards horizontally):
+   - Invitation-based Registration
+   - QR Gate Registration
+   - Watchman Dashboard
+
+4. How It Works Section:
+   - Step 1: Employee Sends Invitation
+   - Step 2: Visitor Registers
+   - Step 3: Watchman Check-in
+
+5. Footer:
+   - Privacy Policy
+   - Contact Email
+   - Company name
+
+Modern SaaS layout, 1440px desktop frame.
+
+Design a professional employee login page.
+
+Layout:
+- Centered login card
+- White background
+- Soft shadow card
+
+Inside card:
+- Title: Employee Login
+- Email field
+- Password field
+- Login button (Full width, blue)
+- Forgot password link
+
+Left side:
+- Illustration showing office visitor management concept
+
+Minimal, clean, corporate look.
+
+Design an Employee Dashboard for a Visitor Management System.
+
+Layout:
+- Left sidebar (260px width)
+    - Dashboard
+    - Send Invitation
+    - Requests
+    - Logout
+
+Top Navbar:
+- Page title
+- Profile avatar dropdown
+
+Main Content:
+
+Top Section:
+4 stat cards in grid:
+- Total Invitations
+- Pending Requests
+- Approved Today
+- Visitors Inside
+
+Below:
+Recent Requests Table:
+Columns:
+Visitor Name
+Purpose
+Date
+Status Badge
+Actions (Approve / Reject buttons)
+
+Professional admin dashboard style.
+
+Design a Send Invitation page inside employee dashboard.
+
+Layout:
+Sidebar on left.
+
+Main Content:
+Card with form:
+
+Fields:
+- Visitor Name
+- Visitor Email
+- Visit Date
+- Purpose of Visit
+
+Submit Button:
+"Send Invitation"
+
+Below form:
+Small info box explaining email invitation flow.
+
+Clean form design, professional SaaS UI.
+
+Design a Visitor Approval page.
+
+Layout:
+Sidebar on left.
+
+Main Area:
+List of visitor request cards.
+
+Each card includes:
+- Visitor photo thumbnail
+- Name
+- Purpose
+- Date
+- Status badge (Pending)
+- Approve button (Green)
+- Reject button (Red)
+
+Cards arranged in vertical list with spacing.
+
+Clean admin dashboard design.
+
+Design a Visitor Registration form page.
+
+Layout:
+Centered card.
+
+Fields:
+- Full Name
+- Phone Number
+- Email
+- Purpose
+- Upload Photo (Drag and drop area)
+- Select Employee dropdown
+
+Submit Button (Full width, blue)
+
+Top:
+Small heading:
+"Visitor Registration"
+
+Minimal and easy-to-use public form.
+
+Design an Invitation Acceptance page.
+
+Top:
+Invitation Details Card:
+- Invited By: Employee Name
+- Visit Date
+- Valid Until
+
+Below:
+Visitor registration form.
+
+Clean layout with trust-focused design.
+
+Design a Watchman Dashboard page.
+
+Sidebar:
+- Dashboard
+- Scan QR
+- Logout
+
+Main Content:
+
+Top Stats:
+3 Cards:
+- Today Visits
+- Currently Inside
+- Left Office
+
+Below:
+Recent Check-ins Table.
+
+Professional but slightly simplified UI compared to employee dashboard.
+
+Design a QR Scan page for Watchman.
+
+Centered large square scanning area.
+Text:
+"Scan Visitor QR Code"
+
+Below camera preview UI mockup.
+
+Minimal interface focused on scanning.
+
+Clean, high-contrast design for outdoor visibility.
+
+Design a Visitor Details page after QR scan.
+
+Left side:
+Visitor photo (large circular image)
+
+Right side:
+- Name
+- Purpose
+- Employee
+- Visit Validity
+- Status Badge (Approved)
+
+Below:
+Two buttons:
+- Check In (Green)
+- Check Out (Red)
+
+Professional card-based layout.
+
+Design a mobile responsive version of Visitor Management System.
+
+- Sidebar becomes hamburger menu
+- Cards stack vertically
+- Full width buttons
+- Simplified layout
+- Clean mobile SaaS design
+- 375px frame
